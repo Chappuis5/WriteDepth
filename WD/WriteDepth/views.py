@@ -2,10 +2,9 @@ from django.shortcuts import render, redirect
 from django.http import HttpResponse
 import os
 import atexit
-import exiftool
 from django.http import JsonResponse
 import sqlite3
-from datetime import datetime, timedelta
+from datetime import datetime
 import pytz
 import json
 import subprocess
@@ -15,6 +14,8 @@ from zipfile import ZipFile
 # Emplacement du répertoire temporaire
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 TEMP_DIR = os.path.join(BASE_DIR, 'temp_folder')
+PROJECT_DIR = os.path.join(BASE_DIR, "Image-ExifTool-12.65")
+EXIFTOOL_PATH = os.path.join(PROJECT_DIR, "exiftool")
 
 # Crée le répertoire s'il n'existe pas
 if not os.path.exists(TEMP_DIR):
@@ -202,30 +203,38 @@ def process(request):
         for filename in os.listdir(TEMP_DIR):
             if filename.lower().endswith('.nef'):
                 file_path = os.path.join(TEMP_DIR, filename)
-                with exiftool.ExifToolHelper() as et:
-                    metadata = et.get_metadata([file_path])
-                    for d in metadata:
-                        datetime_str = d.get("EXIF:DateTimeOriginal", "Unknown")
+                try:
+                    result = subprocess.run([EXIFTOOL_PATH, '-j', '-DateTimeOriginal', file_path], capture_output=True,
+                                            text=True)
+                    metadata_json = json.loads(result.stdout)[0]
+                    datetime_str = metadata_json.get("DateTimeOriginal", None)
+                except Exception as e:
+                    datetime_str = None
+
+                if datetime_str is not None:
+                    try:
                         date_string, time_string = datetime_str.split(' ')
-                        result1 = find_matching_timestamp_with_timezone(date_string, time_string, db_path=db_file_path,
-                                                                        timezone='UTC')
+                    except ValueError:
+                        return "ERROR: DateTimeOriginal format incorrect"
+                result1 = find_matching_timestamp_with_timezone(date_string, time_string, db_path=db_file_path,
+                                                                timezone='UTC')
 
-                        if "id" in result1 and "time_elapsed" in result1:
-                            dive_id = result1["id"]
-                            time_elapsed = result1["time_elapsed"]
-                            result2 = fetch_current_depth_with_confidence(dive_id, time_elapsed, db_path=db_file_path)
-                            current_depth = result2.get("current_depth", "Unknown")
-                            confidence_percentage = result2.get("confidence_percentage", "Unknown")
-                        else:
-                            current_depth = "Unknown"
-                            confidence_percentage = "Unknown"
+                if "id" in result1 and "time_elapsed" in result1:
+                    dive_id = result1["id"]
+                    time_elapsed = result1["time_elapsed"]
+                    result2 = fetch_current_depth_with_confidence(dive_id, time_elapsed, db_path=db_file_path)
+                    current_depth = result2.get("current_depth", "Unknown")
+                    confidence_percentage = result2.get("confidence_percentage", "Unknown")
+                else:
+                    current_depth = "Unknown"
+                    confidence_percentage = "Unknown"
 
-                        image_data.append({
-                            "filename": filename,
-                            "datetime": datetime_str,
-                            "current_depth": current_depth,
-                            "confidence_percentage": confidence_percentage
-                        })
+                image_data.append({
+                    "filename": filename,
+                    "datetime": datetime_str,
+                    "current_depth": current_depth,
+                    "confidence_percentage": confidence_percentage
+                })
         with open(os.path.join(TEMP_DIR, 'metadata.json'), 'w') as f:
             json.dump(image_data, f)
 
@@ -249,8 +258,7 @@ def write_meta_data(request):
 
                 file_path = os.path.join(TEMP_DIR, filename)
 
-                # Use exiftool to write metadata
-                subprocess.run(["exiftool", "-UserComment=" + comment_str, file_path])
+                subprocess.run([EXIFTOOL_PATH, "-UserComment=" + comment_str, file_path])
 
             return JsonResponse({'success': True})
         except Exception as e:
