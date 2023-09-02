@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Scuba Diving Image Processor</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=LemonMilk">
+    <style>
+        body {
+            background-color: lightblue;
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh; /* 100% of the viewport height */
+        }
+        .container {
+            text-align: center;
+        }
+        .main-title {
+            font-family: "LemonMilk", Arial, sans-serif;
+            font-weight: bold;
+            font-style: italic;
+            font-size: 2em;
+        }
+        .sub-title {
+            font-style: italic;
+        }
+        .note {
+            font-size: 0.8em;
+            font-weight: bold;
+        }
+        .smiley {
+            color: green;
+            font-size: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="main-title">Watch how deep you took it</h1>
+        <p class="sub-title">Import your raw images, import your scuba diving computer's database, and let the magic do its work.</p>
+
+        <p>Upload a NEF image or a folder containing NEF images:</p>
+        <form id="upload-form" action="{% url 'upload' %}" method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            <input type="file" id="upload_files" name="upload_files" multiple webkitdirectory style="display:none;">
+        </form>
+        <button onclick="document.getElementById('upload_files').click()">Upload</button>
+        <span class="smiley" id="upload_smiley" style="display:none;">&#x2705;</span> <!-- Smiley de validation -->
+
+        <p>Upload your .db:</p>
+        <form id="db-form" action="{% url 'upload_db' %}" method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            <input type="file" id="database_file" name="database_file" style="display:none;">
+        </form>
+        <button onclick="document.getElementById('database_file').click()">Upload</button>
+        <span class="smiley" id="db_smiley" style="display:none;">&#x2705;</span> <!-- Smiley de validation -->
+
+        <p class="note">Note: Currently only available with .NEF images</p>
+
+        <form id="process-button" action="{% url 'process' %}" method="post">
+            {% csrf_token %}
+            <button type="submit">Process</button>
+        </form>
+
+
+        <script>
+            // Fonction pour uploader des fichiers
+            function uploadFiles(formId, url, callback) {
+                var form = document.getElementById(formId);
+                var formData = new FormData(form);
+
+                fetch(url, {
+                    method: 'POST',
+                    body: formData,
+                })
+                .then(response => response.json())
+                .then(data => callback(data))
+                .catch((error) => console.error('Error:', error));
+            }
+
+            // Quand les fichiers NEF sont sélectionnés
+            document.getElementById('upload_files').addEventListener('change', function() {
+                uploadFiles('upload-form', '{% url "upload" %}', function(data) {
+                    if(data.success) {
+                        document.getElementById('upload_smiley').style.display = "inline";  // Affiche le smiley
+                    }
+                });
+            });
+
+            // Quand le fichier .db est sélectionné
+            document.getElementById('database_file').addEventListener('change', function() {
+                uploadFiles('db-form', '{% url "upload_db" %}', function(data) {
+                    if(data.success) {
+                        document.getElementById('db_smiley').style.display = "inline";  // Affiche le smiley
+                    }
+                });
+            });
+
+        </script>
+
+    </div>
+</body>
+</html>

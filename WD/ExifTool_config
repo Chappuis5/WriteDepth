@@ -1,0 +1,20 @@
+%Image::ExifTool::UserDefined = (
+    'Image::ExifTool::Composite' => {
+        CurrentDepth => {
+            Require => {
+                0 => 'EXIF:SubSecTimeOriginal',
+            },
+            ValueConv => '$val[0]',
+            PrintConv => '"$val m"',
+        },
+        DepthConfidence => {
+            Require => {
+                0 => 'EXIF:SubSecTimeOriginal',
+            },
+            ValueConv => '$val[0]',
+            PrintConv => '"$val%"',
+        },
+    },
+);
+
+1;  # end

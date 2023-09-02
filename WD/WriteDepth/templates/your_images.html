@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Your Images</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=LemonMilk">
+    <style>
+        body {
+            background-color: lightblue;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh; /* 100% of the viewport height */
+        }
+        .container {
+            text-align: center;
+        }
+        .main-title {
+            font-family: "LemonMilk", Arial, sans-serif;
+            font-weight: bold;
+            font-style: italic;
+        }
+        #loader {
+            /* Add your loader styles here */
+            border: 5px solid #f3f3f3;
+            border-radius: 50%;
+            border-top: 5px solid #555;
+            width: 50px;
+            height: 50px;
+            animation: spin 2s linear infinite;
+            margin: auto; /* Center the loader */
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        button {
+            margin: auto; /* Center the button */
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="main-title">Your images were taken...</h1>
+        <div class="dashboard">
+            <ul>
+                {% for item in image_data %}
+                <li>{{ item.filename }} - {{ item.datetime }} - Current Depth: {{ item.current_depth }} m - Confidence: {{ item.confidence_percentage }}%</li>
+                {% endfor %}
+            </ul>
+            <button id="writeMetaBtn">Write into Meta Data</button>
+            <div id="loader" style="display:none;"></div>
+            <p id="successMessage" style="display:none;"><span>&#128578;</span> <i>The metadata was correctly written</i></p>
+            <button id="downloadImagesBtn" style="display:none;">Download Images</button>
+        </div>
+    </div>
+    <script>
+        document.getElementById("writeMetaBtn").addEventListener("click", function() {
+            // Show loading spinner
+            document.getElementById("writeMetaBtn").style.display = "none";
+            document.getElementById("loader").style.display = "block";
+
+            // Make AJAX call to Django view
+            fetch('/write_meta_data/', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Hide loading spinner and show success message
+                document.getElementById("loader").style.display = "none";
+                document.getElementById("successMessage").style.display = "block";
+                document.getElementById("downloadImagesBtn").style.display = "block";  // Show download button
+            })
+            .catch((error) => {
+                console.error('Error:', error);
+            });
+        });
+
+        document.getElementById("downloadImagesBtn").addEventListener("click", function() {
+            window.location.href = '/download_images/';
+        });
+    </script>
+</body>
+
+</html>
