@@ -12,9 +12,10 @@ from zipfile import ZipFile
 
 
 # Emplacement du répertoire temporaire
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 TEMP_DIR = os.path.join(BASE_DIR, 'temp_folder')
-PROJECT_DIR = os.path.join(BASE_DIR, "Image-ExifTool-12.65")
+PROJECT_DIR = os.path.join(BASE_DIR, 'Image-ExifTool-12.65')
+# Chemin vers exiftool
 EXIFTOOL_PATH = os.path.join(PROJECT_DIR, "exiftool")
 
 # Crée le répertoire s'il n'existe pas
